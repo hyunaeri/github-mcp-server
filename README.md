@@ -136,4 +136,3 @@ src/main/java/com/github_mcp_server
 - [ ] API 및 MCP Tool 자동화 테스트
 - [ ] Ollama 기반 로컬 LLM 연동 검증
 - [ ] 자연어 기반 GitHub 작업 자동화
-![Uploading github-mcp-server-architecture.svg…]()
