@@ -1,5 +1,6 @@
 package com.github_mcp_server.tool;
 
+import com.github_mcp_server.dto.file.GithubDirectoryEntryResponse;
 import com.github_mcp_server.dto.file.GithubFileContentResponse;
 import com.github_mcp_server.dto.issue.GithubIssueResponse;
 import com.github_mcp_server.dto.branch.GithubRefResponse;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -115,5 +118,26 @@ public class GithubTools {
             String branch
     ) {
         return githubService.getFileContent(owner, repo, path, branch);
+    }
+
+    @McpTool(
+            name = "list_directory",
+            description = "GitHub 저장소의 특정 브랜치에서 디렉터리에 포함된 파일과 하위 디렉터리 목록을 조회합니다."
+    )
+    public List<GithubDirectoryEntryResponse> listDirectory(
+            @McpToolParam(description = "저장소 소유자", required = true)
+            String owner,
+
+            @McpToolParam(description = "저장소 이름", required = true)
+            String repo,
+
+            @McpToolParam(description = "조회할 디렉터리 경로 (프로젝트 루트는 빈 문자열)", required = false)
+            String path,
+
+            @McpToolParam(description = "조회할 브랜치 이름", required = true)
+            String branch
+    ) {
+        if (path == null) path = "";
+        return githubService.listDirectory(owner, repo, path, branch);
     }
 }
