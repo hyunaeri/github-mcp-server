@@ -1,6 +1,7 @@
 package com.github_mcp_server.tool;
 
 import com.github_mcp_server.dto.GithubIssueResponse;
+import com.github_mcp_server.dto.GithubRefResponse;
 import com.github_mcp_server.dto.GithubRepositoryResponse;
 import com.github_mcp_server.service.GithubService;
 
@@ -57,5 +58,25 @@ public class GithubTools {
             String body
     ) {
         return githubService.createIssue(owner, repo, title, body);
+    }
+
+    @McpTool(
+            name = "create_branch",
+            description = "기존 브랜치를 기준으로 새로운 GitHub 브랜치를 생성합니다."
+    )
+    public GithubRefResponse createBranch(
+            @McpToolParam(description = "GitHub 저장소 소유자", required = true)
+            String owner,
+
+            @McpToolParam(description = "GitHub 저장소 이름", required = true)
+            String repo,
+
+            @McpToolParam(description = "기준 브랜치 이름 (예: master)", required = true)
+            String baseBranch,
+
+            @McpToolParam(description = "새로 생성할 브랜치 이름 (예: feat/new-feature)", required = true)
+            String newBranch
+    ) {
+        return githubService.createBranch(owner, repo, baseBranch, newBranch);
     }
 }

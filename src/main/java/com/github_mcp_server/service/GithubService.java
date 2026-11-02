@@ -1,8 +1,6 @@
 package com.github_mcp_server.service;
 
-import com.github_mcp_server.dto.GithubIssueCreateRequest;
-import com.github_mcp_server.dto.GithubIssueResponse;
-import com.github_mcp_server.dto.GithubRepositoryResponse;
+import com.github_mcp_server.dto.*;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -56,5 +54,43 @@ public class GithubService {
                 .body(request)
                 .retrieve()
                 .body(GithubIssueResponse.class);
+    }
+
+    // 기준 브랜치의 Git Reference 조회
+    public GithubRefResponse getBranchRef(
+            String owner,
+            String repo,
+            String branch
+    ) {
+        return restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/repos/{owner}/{repo}/git/ref/heads/")
+                        .pathSegment(branch.split("/"))
+                        .build(owner, repo))
+                .retrieve()
+                .body(GithubRefResponse.class);
+    }
+
+    // 새로운 브랜치 생성
+    public GithubRefResponse createBranch(
+            String owner,
+            String repo,
+            String baseBranch,
+            String newBranch
+    ) {
+        // 1. 기준 브랜치의 SHA 조회
+        GithubRefResponse baseRef = getBranchRef(owner, repo, baseBranch);
+
+        String sha = baseRef.object().sha();
+
+        // 2. 새 Git reference 생성 요청
+        GithubRefCreateRequest request = new GithubRefCreateRequest("refs/heads/" + newBranch, sha);
+
+        // 3. GitHub API 호출
+        return restClient.post()
+                .uri("/repos/{owner}/{repo}/git/refs", owner, repo)
+                .body(request)
+                .retrieve()
+                .body(GithubRefResponse.class);
     }
 }
