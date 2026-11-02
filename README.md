@@ -1,4 +1,3 @@
-
 # GitHub MCP Server
 
 **Java 21, Spring Boot, Spring AI**를 기반으로 구현한 GitHub MCP 서버입니다.
@@ -35,6 +34,7 @@ GitHub REST API의 주요 기능을 MCP(Model Context Protocol) Tool로 제공�
 | `create_issue` | 지정한 저장소에 새로운 Issue를 생성합니다. |
 | `create_branch` | 기존 브랜치를 기준으로 새로운 브랜치를 생성합니다. |
 | `get_file_content` | 지정한 브랜치의 파일을 조회하고 내용을 디코딩하여 반환합니다. |
+| `list_directory` | 지정한 브랜치의 디렉터리에 포함된 파일과 하위 디렉터리 목록을 조회합니다. |
 
 <br/>
 
@@ -64,12 +64,23 @@ GitHub REST API의 주요 기능을 MCP(Model Context Protocol) Tool로 제공�
 - Base64로 인코딩된 파일 내용을 UTF-8 텍스트로 변환
 - 파일 이름, 경로, SHA 등의 메타데이터 반환
 
+### Directory Listing
+
+- GitHub Contents API를 활용한 디렉터리 목록 조회
+- 특정 브랜치의 디렉터리 조회
+- 저장소 루트 및 중첩된 하위 디렉터리 경로 지원
+- `pathSegment()`를 활용한 디렉터리 경로 구성
+- 파일 및 디렉터리 이름, 경로, 타입, SHA, 크기 등의 메타데이터 반환
+- `ParameterizedTypeReference`를 활용한 DTO 목록 역직렬화
+- 현재 디렉터리의 직속 항목만 조회하는 비재귀 방식 지원
+
 ### Error Handling
 
 - `RestClient.defaultStatusHandler()`를 활용한 GitHub API 공통 오류 처리
 - HTTP 상태 코드에 따른 애플리케이션 에러 코드 매핑
 - `ErrorCode`와 `GithubException`을 활용한 커스텀 예외 처리
 - 파일 타입, 인코딩 방식 및 응답 데이터 검증
+- 존재하지 않는 디렉터리 경로에 대한 GitHub API 오류 처리
 
 <br/>
 
@@ -96,7 +107,7 @@ GitHub REST API의 주요 기능을 MCP(Model Context Protocol) Tool로 제공�
 src/main/java/com/github_mcp_server
 ├── dto
 │   ├── branch         # 브랜치 생성 및 Git Reference DTO
-│   ├── file           # 파일 조회 및 응답 DTO
+│   ├── file           # 파일 내용 및 디렉터리 목록 조회 DTO
 │   ├── issue          # Issue 생성 및 응답 DTO
 │   └── repository     # 저장소 정보 DTO
 ├── exception          # 공통 에러 코드 및 커스텀 예외
@@ -118,9 +129,11 @@ src/main/java/com/github_mcp_server
 현재 구현에서는 다음과 같은 제약이 있습니다.
 
 - 파일 조회는 UTF-8 텍스트 파일을 대상으로 합니다.
-- 디렉터리 목록 조회는 지원하지 않습니다.
+- 디렉터리 목록 조회는 현재 디렉터리의 직속 파일 및 하위 디렉터리만 반환하며, 재귀 탐색은 지원하지 않습니다.
 - 바이너리 파일과 대용량 파일 처리는 지원하지 않습니다.
+- 디렉터리 목록 조회 시 파일 경로를 전달하는 경우에 대한 별도 타입 검증은 구현하지 않았습니다.
 - 네트워크 연결 실패 및 타임아웃에 대한 별도의 커스텀 예외 처리는 구현하지 않았습니다.
+- 로컬 LLM의 Tool Calling 정확도에 따라 도구 선택이나 응답 결과가 달라질 수 있습니다.
 
 <br/>
 
@@ -130,9 +143,11 @@ src/main/java/com/github_mcp_server
 - [x] GitHub Issue 생성
 - [x] GitHub 브랜치 생성
 - [x] GitHub 파일 내용 조회
+- [x] GitHub 디렉터리 목록 조회
 - [x] 공통 API 예외 처리
+- [x] Ollama 기반 로컬 LLM 연동 및 MCP Tool 호출 검증
+- [ ] GitHub 저장소 전체 파일 트리 재귀 조회
 - [ ] GitHub 파일 생성 및 수정
 - [ ] GitHub Pull Request 생성 및 관리
 - [ ] API 및 MCP Tool 자동화 테스트
-- [ ] Ollama 기반 로컬 LLM 연동 검증
-- [ ] 자연어 기반 GitHub 작업 자동화
+- [ ] 자연어 기반 GitHub 작업 자동화의 정확도 및 안정성 개선
