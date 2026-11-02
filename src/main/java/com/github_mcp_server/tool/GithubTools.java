@@ -1,8 +1,9 @@
 package com.github_mcp_server.tool;
 
-import com.github_mcp_server.dto.GithubIssueResponse;
-import com.github_mcp_server.dto.GithubRefResponse;
-import com.github_mcp_server.dto.GithubRepositoryResponse;
+import com.github_mcp_server.dto.file.GithubFileContentResponse;
+import com.github_mcp_server.dto.issue.GithubIssueResponse;
+import com.github_mcp_server.dto.branch.GithubRefResponse;
+import com.github_mcp_server.dto.repository.GithubRepositoryResponse;
 import com.github_mcp_server.service.GithubService;
 
 import lombok.RequiredArgsConstructor;
@@ -78,5 +79,41 @@ public class GithubTools {
             String newBranch
     ) {
         return githubService.createBranch(owner, repo, baseBranch, newBranch);
+    }
+
+
+    @McpTool(
+            name = "get_file_content",
+            description = "GitHub 저장소의 특정 브랜치에서 파일 내용을 조회합니다.",
+            annotations = @McpTool.McpAnnotations(
+                    readOnlyHint = true
+            )
+    )
+    public GithubFileContentResponse getFileContent(
+            @McpToolParam(
+                    description = "GitHub 저장소 소유자",
+                    required = true
+            )
+            String owner,
+
+            @McpToolParam(
+                    description = "GitHub 저장소 이름",
+                    required = true
+            )
+            String repo,
+
+            @McpToolParam(
+                    description = "조회할 파일 경로 (예: README.md)",
+                    required = true
+            )
+            String path,
+
+            @McpToolParam(
+                    description = "조회할 브랜치 이름 (예: master)",
+                    required = true
+            )
+            String branch
+    ) {
+        return githubService.getFileContent(owner, repo, path, branch);
     }
 }

@@ -1,10 +1,25 @@
 package com.github_mcp_server.service;
 
-import com.github_mcp_server.dto.*;
+import com.github_mcp_server.dto.branch.GithubRefCreateRequest;
+import com.github_mcp_server.dto.branch.GithubRefResponse;
+import com.github_mcp_server.dto.file.GithubFileContentResponse;
+import com.github_mcp_server.dto.file.GithubFileResponse;
+import com.github_mcp_server.dto.issue.GithubIssueCreateRequest;
+import com.github_mcp_server.dto.issue.GithubIssueResponse;
+import com.github_mcp_server.dto.repository.GithubRepositoryResponse;
+import com.github_mcp_server.exception.ErrorCode;
+import com.github_mcp_server.exception.GithubException;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 @Service
 public class GithubService {
@@ -21,6 +36,7 @@ public class GithubService {
                 .defaultHeader("X-GitHub-Api-Version", "2022-11-28")
                 .defaultHeader("User-Agent", "github-mcp-server")
                 .defaultHeader("Authorization", "Bearer " + token)
+                .defaultStatusHandler(HttpStatusCode::isError, this::handleApiError)
                 .build();
     }
 
@@ -92,5 +108,85 @@ public class GithubService {
                 .body(request)
                 .retrieve()
                 .body(GithubRefResponse.class);
+    }
+
+    // GitHub 저장소의 파일 내용 조회
+    public GithubFileContentResponse getFileContent(
+            String owner,
+            String repo,
+            String path,
+            String branch
+    ) {
+        // 1. GitHub Contents API 호출
+        GithubFileResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/repos/{owner}/{repo}/contents/")
+                        .path(path)
+                        .queryParam("ref", branch)
+                        .build(owner, repo))
+                .retrieve()
+                .body(GithubFileResponse.class);
+
+        // 2. 응답 검증
+        if (response == null) {
+            throw new GithubException(ErrorCode.GITHUB_EMPTY_RESPONSE);
+        }
+
+        // 파일 타입 검증
+        if (!"file".equals(response.type())) {
+            throw new GithubException(ErrorCode.FILE_NOT_A_FILE);
+        }
+
+        // 인코딩 방식 검증
+        if (!"base64".equals(response.encoding())) {
+            throw new GithubException(ErrorCode.FILE_UNSUPPORTED_ENCODING);
+        }
+
+        // 파일 내용 검증
+        if (response.content() == null) {
+            throw new GithubException(ErrorCode.FILE_INVALID_CONTENT);
+        }
+
+        // 3. Base64 디코딩
+        String content;
+
+        try {
+            byte[] decodedBytes = Base64.getMimeDecoder()
+                    .decode(response.content());
+
+            content = new String(
+                    decodedBytes,
+                    StandardCharsets.UTF_8
+            );
+
+        } catch (IllegalArgumentException e) {
+            throw new GithubException(ErrorCode.FILE_INVALID_CONTENT, e);
+        }
+
+        // 4. MCP Client에 반환
+        return new GithubFileContentResponse(
+                response.name(),
+                response.path(),
+                response.sha(),
+                content
+        );
+    }
+
+    private void handleApiError(
+            HttpRequest request,
+            ClientHttpResponse response
+    ) throws IOException {
+
+        int status = response.getStatusCode().value();
+
+        ErrorCode errorCode = switch (status) {
+            case 401 -> ErrorCode.GITHUB_UNAUTHORIZED;
+            case 403 -> ErrorCode.GITHUB_FORBIDDEN;
+            case 404 -> ErrorCode.GITHUB_RESOURCE_NOT_FOUND;
+            case 422 -> ErrorCode.GITHUB_VALIDATION_FAILED;
+            default -> ErrorCode.GITHUB_API_ERROR;
+        };
+
+        throw new GithubException(errorCode);
     }
 }
