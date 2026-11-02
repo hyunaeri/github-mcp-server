@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: github-mcp-server
+
+  config:
+    import: optional:file:.env[.properties]
+
+  main:
+    web-application-type: none
+    banner-mode: off
+
+  ai:
+    mcp:
+      server:
+        name: github-mcp-server
+        version: 1.0.0
+        type: SYNC
+        stdio: true
+
+logging:
+  console:
+    enabled: false
+  file:
+    name: logs/github-mcp-server.log
+
+github:
+  api:
+    token: ${GITHUB_TOKEN}
