@@ -2,6 +2,7 @@ package com.github_mcp_server.service;
 
 import com.github_mcp_server.dto.branch.GithubRefCreateRequest;
 import com.github_mcp_server.dto.branch.GithubRefResponse;
+import com.github_mcp_server.dto.file.GithubDirectoryEntryResponse;
 import com.github_mcp_server.dto.file.GithubFileContentResponse;
 import com.github_mcp_server.dto.file.GithubFileResponse;
 import com.github_mcp_server.dto.issue.GithubIssueCreateRequest;
@@ -11,6 +12,7 @@ import com.github_mcp_server.exception.ErrorCode;
 import com.github_mcp_server.exception.GithubException;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.ClientHttpResponse;
@@ -20,6 +22,8 @@ import org.springframework.web.client.RestClient;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class GithubService {
@@ -170,6 +174,27 @@ public class GithubService {
                 response.sha(),
                 content
         );
+    }
+
+    // 디렉토리에 포함된 파일 및 하위 디렉토리 목록 조회
+    public List<GithubDirectoryEntryResponse> listDirectory(
+            String owner,
+            String repo,
+            String path,
+            String branch
+    ) {
+        String directoryPath = Objects.requireNonNullElse(path, "");
+
+        List<GithubDirectoryEntryResponse> response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/repos/{owner}/{repo}/contents")
+                        .pathSegment(directoryPath.split("/"))
+                        .queryParam("ref", branch)
+                        .build(owner, repo))
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {});
+
+        return response;
     }
 
     private void handleApiError(
